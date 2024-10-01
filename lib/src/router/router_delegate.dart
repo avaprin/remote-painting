@@ -1,8 +1,12 @@
 import 'package:flutter/material.dart';
 
+import '../models/client_model.dart';
 import '../models/server_model.dart';
+import '../ui/client/client_canvas_screen.dart';
+import '../ui/client/client_canvases_screen.dart';
 import '../ui/client/client_settings_screen.dart';
 import '../ui/home_screen.dart';
+import '../ui/server/server_client_screen.dart';
 import '../ui/server/server_settings_screen.dart';
 import '_pages/material_page.dart';
 import 'router_state.dart';
@@ -28,8 +32,10 @@ class AppRouterDelegate extends RouterDelegate<RouterState>
 
   @override
   Widget build(BuildContext context) {
+    final selectedCanvasId = _state.selectedCanvasId;
     final showClientSettings = _state.showClientSettings;
     final streamModel = _state.streamModel;
+    final selectedClientModel = _state.selectedClientModel;
 
     return Navigator(
       key: _key,
@@ -39,14 +45,42 @@ class AppRouterDelegate extends RouterDelegate<RouterState>
         //
         asMaterialPage(const HomeScreen(), 'HomeScreen'),
 
-        if (streamModel is ServerModel)
+        if (streamModel is ServerModel) ...[
+          //
           asMaterialPage(
             ServerSettingsScreen(streamModel),
             'ServerSettingsScreen',
           ),
 
-        if (showClientSettings)
+          if (selectedClientModel != null)
+            asMaterialPage(
+              ServerClientScreen(selectedClientModel),
+              'ServerClientScreen',
+            ),
+        ],
+
+        if (showClientSettings) ...[
+          //
           asMaterialPage(const ClientSettingsScreen(), 'ClientSettingsScreen'),
+
+          if (streamModel is ClientModel)
+            asMaterialPage(
+              ClientCanvasesScreen(
+                clientModel: streamModel,
+              ),
+              'ClientCanvasesScreen',
+            ),
+
+          if (streamModel is ClientModel && selectedCanvasId != null)
+            asMaterialPage(
+              ClientCanvasScreen(
+                clientModel: streamModel,
+                canvasId: selectedCanvasId,
+              ),
+              'ClientCanvasScreen',
+              true,
+            ),
+        ],
       ],
     );
   }
