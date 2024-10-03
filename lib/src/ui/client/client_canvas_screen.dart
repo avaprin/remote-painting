@@ -1,4 +1,9 @@
+import 'dart:io';
+import 'dart:ui';
+
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:provider/provider.dart';
 
@@ -32,6 +37,8 @@ class _ClientCanvasScreenState extends State<ClientCanvasScreen> {
     Colors.black,
     Colors.white,
   ];
+
+  final _canvasRepaintBoundaryKey = GlobalKey();
 
   late final _localDrawCommand = LocalDrawCommand(
     canvasId: widget.canvasId,
@@ -182,6 +189,31 @@ class _ClientCanvasScreenState extends State<ClientCanvasScreen> {
                         ),
                         icon: const Icon(Icons.refresh_rounded),
                       ),
+
+                      IconButton(
+                        onPressed: () async {
+                          final rpb = _canvasRepaintBoundaryKey.currentContext!
+                              .findRenderObject() as RenderRepaintBoundary;
+
+                          final image = await rpb.toImage();
+
+                          final byteData = await image.toByteData(
+                              format: ImageByteFormat.png);
+
+                          final bytes = byteData!.buffer.asUint8List();
+
+                          final path = await FilePicker.platform.saveFile(
+                            dialogTitle: 'Save canvas',
+                            fileName: 'canvas.png',
+                            bytes: bytes,
+                          );
+
+                          if (Platform.isIOS || path == null) return;
+
+                          await File(path).writeAsBytes(bytes);
+                        },
+                        icon: const Icon(Icons.image_rounded),
+                      ),
                     ],
                   ),
                 ],
@@ -189,9 +221,12 @@ class _ClientCanvasScreenState extends State<ClientCanvasScreen> {
             ),
           ),
           body: SafeArea(
-            child: ClientCanvas(
-              localDrawCommand: _localDrawCommand,
-              canvasId: widget.canvasId,
+            child: RepaintBoundary(
+              key: _canvasRepaintBoundaryKey,
+              child: ClientCanvas(
+                localDrawCommand: _localDrawCommand,
+                canvasId: widget.canvasId,
+              ),
             ),
           ),
         ),
